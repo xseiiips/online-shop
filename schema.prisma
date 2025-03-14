@@ -10,21 +10,75 @@ datasource db {
   directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
 }
 
-model Post {
-  id        String     @default(cuid()) @id
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User?   @relation(fields: [authorId], references: [id])
-  authorId  String?
+model Shop {
+  id            String      @default(cuid()) @id
+  name          String      @db.VarChar(100)
+  location      String      @db.VarChar(255)
+  owner         String      @db.VarChar(100)
+  opening_date  Date
+  website       String?     @db.VarChar(100)
+  revenue       Decimal     @default(0) @db.Decimal(10, 2)
+
+  // Связи
+  products      products[]
+  staff         stuff[]
+  discounts     discount[]
+  suppliers     suppliers[]
 }
 
-model User {
-  id            String       @default(cuid()) @id
-  name          String?
-  email         String?   @unique
-  createdAt     DateTime  @default(now()) @map(name: "created_at")
-  updatedAt     DateTime  @updatedAt @map(name: "updated_at")
-  posts         Post[]
-  @@map(name: "users")
+model Product {
+  id                 String   @default(cuid()) @id
+  name               String   @db.VarChar(100)
+  price              Decimal  @default(0) @db.Decimal(10,2)
+  category           String
+  stock_quantity     Int
+  date_added         Date
+  image_url         String?  @db.VarChar(255)
+  description       String?  @db.Text
+  avg_monthly_sales Int       @default(0)
+
+  // Внешний ключ на магазин
+  shop_id String?
+  shop    shop? @relation(fields: [shop_id], references: [id])
+}
+
+model Discount {
+  id                String  @default(cuid()) @id
+  discount_percent  Decimal @default(0) @db.Decimal(5,2)
+  start_date        Date
+  end_date          Date
+
+  // Внешний ключ на магазин
+  products Product[]
+  shop_id String?
+  shop    shop? @relation(fields: [shop_id], references: [id])
+}
+
+model Stuff {
+  id       String   @default(cuid()) @id
+  name     String   @db.VarChar(100)
+  position String   @db.VarChar(50)
+  salary   Decimal  @default(0) @db.Decimal(10,2)
+  hire_date Date
+
+  // Внешний ключ на магазин
+  shop_id String?
+  shop    shop? @relation(fields: [shop_id], references: [id])
+}
+
+model Suppliers {
+  id                String  @default(cuid()) @id
+  name_suppliers    String  @db.VarChar(100)
+  contact_person    String? @db.VarChar(100)
+  phone            String? @db.VarChar(20)
+  address          String? @db.VarChar(255)
+  website          String? @db.VarChar(255)
+  supplied_products String? @db.Text
+  stock_products    Int
+  price_products    Float
+  lead_time         Int
+
+  // Внешний ключ на магазин
+  shop_id String?
+  shop    shop? @relation(fields: [shop_id], references: [id])
 }
