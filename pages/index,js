@@ -1,0 +1,114 @@
+import Header from "../components/Header";
+import StatisticCard from "../components/StatisticCard";
+import TableWithPagination from "../components/TableWithPagination";
+import { getStatistics, getClothingBySupplier, getClothingByStore } from "../lib/prisma";
+
+export default async function Home() {
+  const statistics = await getStatistics();
+  const clothingBySupplier = await getClothingBySupplier();
+  const clothingByStore = await getClothingByStore();
+
+  return (
+    <>
+      {/* Шапка */}
+      <Header />
+
+      {/* Основной контент */}
+      <main className="p-4">
+        {/* Верхняя часть: три блока со статистикой */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {/* Блок 1: Магазины */}
+          <StatisticCard
+            title="Магазины"
+            data={{
+              "Количество магазинов": statistics.storeCount,
+              "Количество категорий товаров": statistics.categoryCount,
+              "Количество брендов": statistics.brandCount,
+            }}
+          />
+
+          {/* Блок 2: Персонал */}
+          <StatisticCard
+            title="Персонал"
+            data={{
+              "Количество сотрудников": statistics.employeeCount,
+              "Количество должностей": statistics.positionCount,
+            }}
+          />
+
+          {/* Блок 3: Поставщики */}
+          <StatisticCard
+            title="Поставщики"
+            data={{
+              "Количество поставщиков": statistics.supplierCount,
+              "Количество стран": statistics.countryCount,
+            }}
+          />
+        </div>
+
+        {/* Нижняя часть: две таблицы с пагинацией */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Таблица 1: Одежда по поставщикам */}
+          <TableWithPagination
+            data={clothingBySupplier}
+            columns={[
+              { key: "supplier", label: "Поставщик" },
+              { key: "clothingCount", label: "Количество одежды" },
+            ]}
+          />
+
+          {/* Таблица 2: Одежда в магазине */}
+          <TableWithPagination
+            data={clothingByStore}
+            columns={[
+              { key: "store", label: "Магазин" },
+              { key: "clothingCount", label: "Количество одежды" },
+            ]}
+          />
+        </div>
+      </main>
+    </>
+  );
+}
+
+// Функция получения статистики
+async function getStatistics() {
+  const client = await require("../lib/prisma").default();
+  const result = await client.$queryRaw`
+    SELECT 
+      (SELECT COUNT(*) FROM stores) AS storeCount,
+      (SELECT COUNT(*) FROM categories) AS categoryCount,
+      (SELECT COUNT(*) FROM brands) AS brandCount,
+      (SELECT COUNT(*) FROM employees) AS employeeCount,
+      (SELECT COUNT(DISTINCT position) FROM employees) AS positionCount,
+      (SELECT COUNT(*) FROM suppliers) AS supplierCount,
+      (SELECT COUNT(DISTINCT country) FROM suppliers) AS countryCount
+  `;
+  return result[0];
+}
+
+// Функция получения одежды по поставщикам
+async function getClothingBySupplier() {
+  const client = await require("../lib/prisma").default();
+  const result = await client.$queryRaw`
+    SELECT 
+      supplier AS supplier,
+      COUNT(*) AS clothingCount
+    FROM clothing
+    GROUP BY supplier
+  `;
+  return result;
+}
+
+// Функция получения одежды в магазине
+async function getClothingByStore() {
+  const client = await require("../lib/prisma").default();
+  const result = await client.$queryRaw`
+    SELECT 
+      store AS store,
+      COUNT(*) AS clothingCount
+    FROM clothing
+    GROUP BY store
+  `;
+  return result;
+}
